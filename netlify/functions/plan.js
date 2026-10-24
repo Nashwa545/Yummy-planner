@@ -3,9 +3,9 @@ exports.handler = async (event) => {
     const { prompt } = JSON.parse(event.body || "{}");
     if (!prompt) return { statusCode: 400, body: "Missing prompt" };
     
-    // Updated to the correct model version
+    // Updated to the current active Gemini 3.x model
     const r = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent",
       {
         method: "POST",
         headers: {
@@ -21,7 +21,6 @@ exports.handler = async (event) => {
     
     const d = await r.json();
     
-    // Pass the actual Google error back to the browser for debugging
     if (!r.ok) {
       return { 
         statusCode: r.status, 
