@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Yummy Planner - AI Meal & Diet Assistant</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #FF7043;
+      --secondary: #4CAF50;
+      --bg: #FFF3E0;
+      --text: #333;
+      --card-bg: #FFFFFF;
+      --border-radius: 12px;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      background-color: var(--primary);
+      color: white;
+      width: 100%;
+      text-align: center;
+      padding: 1.5rem 0;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    h1, h2, h3 { margin: 0 0 10px 0; }
+    
+    .container {
+      width: 90%;
+      max-width: 800px;
+      margin: 20px auto;
+    }
+
+    .card {
+      background: var(--card-bg);
+      padding: 20px;
+      border-radius: var(--border-radius);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+      margin-bottom: 20px;
+    }
+
+    /* Buttons & Toggles */
+    button {
+      background-color: var(--secondary);
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    button:hover { background-color: #45a049; }
+    button.alt-btn { background-color: var(--primary); }
+    button.alt-btn:hover { background-color: #e6653c; }
+    button.danger-btn { background-color: #e53935; }
+    
+    .mode-selector {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .mode-btn {
+      flex: 1;
+      background-color: #ddd;
+      color: #555;
+    }
+    
+    .mode-btn.active {
+      background-color: var(--primary);
+      color: white;
+    }
+
+    /* Forms */
+    .form-group { margin-bottom: 15px; }
+    label { font-weight: 600; display: block; margin-bottom: 5px; }
+    input[type="text"], input[type="number"], select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-family: 'Poppins', sans-serif;
+      box-sizing: border-box;
+    }
+    
+    .checkbox-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      font-weight: 400;
+      font-size: 0.9rem;
+    }
+    
+    .checkbox-label input { margin-right: 8px; }
+
+    /* Dashboard */
+    .member-list { display: flex; flex-direction: column; gap: 10px; }
+    .member-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f9f9f9;
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+
+    /* Actions Area */
+    .action-area {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 20px;
+    }
+
+    /* Loading & Results */
+    #loading {
+      display: none;
+      text-align: center;
+      font-weight: 600;
+      color: var(--primary);
+      margin: 20px 0;
+    }
+    
+    .meal-card {
+      border-left: 4px solid var(--secondary);
+      background: #f9f9f9;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-radius: 0 8px 8px 0;
+    }
+    
+    .meal-card h4 { color: var(--primary); margin-top: 0; }
+    .modifications { background: #fff3cd; padding: 10px; border-radius: 6px; font-size: 0.9rem; margin-top: 10px;}
+    .warning { color: #d32f2f; font-weight: bold; font-size: 0.9rem; }
+
+    /* Hidden utility */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Yummy Planner</h1>
+    <p>AI-Powered Personalized Meal Planning</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- Mode Selection -->
+    <div class="mode-selector" id="modeSelector">
+      <button class="mode-btn active" onclick="setMode('individual')" id="btnIndividual">Individual Mode</button>
+      <button class="mode-btn" onclick="setMode('family')" id="btnFamily">Family Mode</button>
+    </div>
+
+    <!-- Dashboard (Shows active profiles) -->
+    <div id="dashboardView" class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 id="dashboardTitle">Your Profile</h2>
+        <button onclick="showProfileForm()" id="addProfileBtn">Edit Profile</button>
+      </div>
+      
+      <div id="memberList" class="member-list">
+        <!-- Members injected here via JS -->
+      </div>
+
+      <div class="action-area" id="planActions" style="display:none;">
+        <select id="planDays" style="width: auto;">
+          <option value="1">1 Day Plan</option>
+          <option value="3">3 Day Plan</option>
+          <option value="7">7 Day Plan</option>
+        </select>
+        <select id="planBudget" style="width: auto;">
+          <option value="Medium">Medium Budget</option>
+          <option value="Low">Low Budget</option>
+        </select>
+        <button onclick="generatePlan(false)">Plan Our Meals!</button>
+        <button class="alt-btn" onclick="generatePlan(true)">🌙 Midnight Snacks</button>
+      </div>
+    </div>
+
+    <!-- Profile Form (Hidden by default) -->
+    <div id="profileFormView" class="card hidden">
+      <h2 id="formTitle">Add Details</h2>
+      <form id="profileForm">
+        
+        <div class="form-group">
+          <label>Name / Nickname</label>
+          <input type="text" id="profName" required placeholder="e.g. Mom, Leo, John">
+        </div>
+        
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="profAge" required placeholder="e.g. 30">
+        </div>
+
+        <div class="form-group">
+          <label>Primary Goals</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-label"><input type="checkbox" name="goal" value="Maintain Weight"> Maintain Weight</label>
+            <label class="checkbox-label"><input type="checkbox" name="goal" value="Build Muscle"> Build Muscle</label>
+            <label class="checkbox-label"><input type="checkbox" name="goal" value="Lose Weight"> Lose Weight</label>
+            <label class="checkbox-label"><input type="checkbox" name="goal" value="Eat Healthier"> Eat Healthier</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Dietary Preferences</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-label"><input type="checkbox" name="diet" value="Omnivorous" checked> Omnivorous</label>
+            <label class="checkbox-label"><input type="checkbox" name="diet" value="Vegetarian"> Vegetarian</label>
+            <label class="checkbox-label"><input type="checkbox" name="diet" value="Vegan"> Vegan</label>
+            <label class="checkbox-label"><input type="checkbox" name="diet" value="Pescatarian"> Pescatarian</label>
+            <label class="checkbox-label"><input type="checkbox" name="diet" value="Halal"> Halal</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Medical Conditions (Strict Rules)</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-label"><input type="checkbox" name="medical" value="Diabetes"> Diabetes</label>
+            <label class="checkbox-label"><input type="checkbox" name="medical" value="Hypertension"> High Blood Pressure</label>
+            <label class="checkbox-label"><input type="checkbox" name="medical" value="Celiac"> Celiac Disease</label>
+          </div>
+          <input type="text" id="profMedicalOther" placeholder="Other medical conditions..." style="margin-top:10px;">
+        </div>
+
+        <div class="form-group">
+          <label>Allergies & Intolerances (Safety Critical)</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-label"><input type="checkbox" name="allergy" value="Dairy"> Dairy</label>
+            <label class="checkbox-label"><input type="checkbox" name="allergy" value="Nuts"> Nuts / Peanuts</label>
+            <label class="checkbox-label"><input type="checkbox" name="allergy" value="Shellfish"> Shellfish</label>
+            <label class="checkbox-label"><input type="checkbox" name="allergy" value="Gluten"> Gluten Intolerance</label>
+          </div>
+          <input type="text" id="profAllergyOther" placeholder="Other allergies..." style="margin-top:10px;">
+        </div>
+
+        <div class="form-group">
+          <label>Disliked Foods</label>
+          <input type="text" id="profDislikes" placeholder="e.g. Mushrooms, Olives, Spicy food">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="submit" id="saveProfileBtn">Save Profile</button>
+          <button type="button" class="danger-btn" onclick="cancelProfileForm()">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loading">Cooking up your custom plan... 🍳 Please wait...</div>
+
+    <!-- Results Area -->
+    <div id="resultsArea" class="card hidden">
+      <h2>Your Meal Plan</h2>
+      <div id="resultsContent"></div>
+      <button class="alt-btn" onclick="document.getElementById('resultsArea').classList.add('hidden')" style="margin-top: 15px;">Clear Results</button>
+    </div>
+
+  </div>
+
+  <script>
+    // --- State Management ---
+    const AppState = {
+      mode: localStorage.getItem("yummy_mode") || "individual",
+      profiles: JSON.parse(localStorage.getItem("yummy_profiles") || "[]"),
+      
+      save: function() {
+        localStorage.setItem("yummy_mode", this.mode);
+        localStorage.setItem("yummy_profiles", JSON.stringify(this.profiles));
+        renderDashboard();
+      },
+      clearProfiles: function() {
+        this.profiles = [];
+        this.save();
+      }
+    };
+
+    // --- UI Routing & Rendering ---
+    function setMode(newMode) {
+      AppState.mode = newMode;
+      document.getElementById('btnIndividual').classList.toggle('active', newMode === 'individual');
+      document.getElementById('btnFamily').classList.toggle('active', newMode === 'family');
+      
+      // If switching modes, prompt user that data might be cleared if they want a fresh start, 
+      // but for simplicity, we just clear and restart the form process to prevent data bleeding.
+      if (confirm(`Switching to ${newMode} mode. Do you want to clear current profiles to start fresh?`)) {
+        AppState.clearProfiles();
+      }
+      AppState.save();
+    }
+
+    function renderDashboard() {
+      const list = document.getElementById('memberList');
+      const title = document.getElementById('dashboardTitle');
+      const addBtn = document.getElementById('addProfileBtn');
+      const planActions = document.getElementById('planActions');
+      
+      list.innerHTML = '';
+      
+      if (AppState.mode === 'individual') {
+        title.innerText = "Your Profile";
+        addBtn.innerText = AppState.profiles.length > 0 ? "Edit Profile" : "Create Profile";
+        if (AppState.profiles.length > 0) {
+          list.innerHTML = `<div class="member-item">
+            <span><strong>${AppState.profiles[0].name}</strong> (Age: ${AppState.profiles[0].age})</span>
+          </div>`;
+          planActions.style.display = "flex";
+        } else {
+          list.innerHTML = `<p>No profile created yet. Please create one.</p>`;
+          planActions.style.display = "none";
+        }
+      } else {
+        title.innerText = "Family Members";
+        addBtn.innerText = "+ Add Family Member";
+        if (AppState.profiles.length > 0) {
+          AppState.profiles.forEach((p, index) => {
+            list.innerHTML += `<div class="member-item">
+              <span><strong>${p.name}</strong> (Age: ${p.age})</span>
+              <button class="danger-btn" style="padding: 5px 10px;" onclick="removeProfile(${index})">Remove</button>
+            </div>`;
+          });
+          planActions.style.display = "flex";
+        } else {
+          list.innerHTML = `<p>No family members added yet.</p>`;
+          planActions.style.display = "none";
+        }
+      }
+    }
+
+    function removeProfile(index) {
+      AppState.profiles.splice(index, 1);
+      AppState.save();
+    }
+
+    function showProfileForm() {
+      document.getElementById('dashboardView').classList.add('hidden');
+      document.getElementById('profileFormView').classList.remove('hidden');
+      document.getElementById('profileForm').reset();
+      
+      if (AppState.mode === 'individual' && AppState.profiles.length > 0) {
+        // Pre-fill logic could go here in the future
+      }
+    }
+
+    function cancelProfileForm() {
+      document.getElementById('profileFormView').classList.add('hidden');
+      document.getElementById('dashboardView').classList.remove('hidden');
+    }
+
+    // --- Form Handling ---
+    document.getElementById('profileForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const getCheckedValues = (name) => Array.from(document.querySelectorAll(`input[name="${name}"]:checked`)).map(cb => cb.value);
+      
+      let medical = getCheckedValues('medical');
+      const medOther = document.getElementById('profMedicalOther').value;
+      if (medOther) medical.push(medOther);
+
+      let allergies = getCheckedValues('allergy');
+      const algOther = document.getElementById('profAllergyOther').value;
+      if (algOther) allergies.push(algOther);
+
+      const profile = {
+        name: document.getElementById('profName').value,
+        age: document.getElementById('profAge').value,
+        goals: getCheckedValues('goal'),
+        dietary: getCheckedValues('diet'),
+        medical: medical,
+        allergies: allergies,
+        dislikes: [document.getElementById('profDislikes').value].filter(Boolean)
+      };
+
+      if (AppState.mode === 'individual') {
+        AppState.profiles = [profile]; // Overwrite for individual
+      } else {
+        AppState.profiles.push(profile); // Append for family
+      }
+
+      AppState.save();
+      cancelProfileForm();
+    });
+
+    // --- API & Meal Plan Generation ---
+    async function generatePlan(isMidnightSnack) {
+      const days = document.getElementById('planDays').value;
+      const budget = document.getElementById('planBudget').value;
+      
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('resultsArea').classList.add('hidden');
+      document.getElementById('resultsContent').innerHTML = '';
+
+      const payload = {
+        mode: AppState.mode,
+        profiles: AppState.profiles,
+        preferences: { budget: budget },
+        days: days,
+        requestType: isMidnightSnack ? "midnight_snack" : "full_plan"
+      };
+
+      try {
+        const response = await fetch("/.netlify/functions/plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || "Server error");
+        }
+        
+        const textData = await response.text();
+        // The AI backend should return a JSON string. We parse it here.
+        // Using a try-catch specifically for JSON parsing in case the AI hallucinates markdown formatting.
+        let planData;
+        try {
+            // Strip markdown code blocks if the AI accidentally includes them
+            const cleanText = textData.replace(/```json/g, '').replace(/```/g, '');
+            planData = JSON.parse(cleanText);
+        } catch (jsonErr) {
+            console.error("AI returned malformed JSON:", textData);
+            throw new Error("The AI provided an unreadable response format.");
+        }
+
+        renderPlanToUI(planData);
+        
+      } catch (error) {
+        console.error("Generation Error:", error);
+        document.getElementById('resultsContent').innerHTML = `<p class="warning">Error: ${error.message}. Please try again.</p>`;
+        document.getElementById('resultsArea').classList.remove('hidden');
+      } finally {
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    function renderPlanToUI(data) {
+      const resultsDiv = document.getElementById('resultsContent');
+      let html = `<p><strong>Overview:</strong> ${data.summary || "Here is your custom plan!"}</p>`;
+      
+      if (data.meals && Array.isArray(data.meals)) {
+        data.meals.forEach(meal => {
+          html += `
+            <div class="meal-card">
+              <h4>${meal.day ? `Day ${meal.day} - ` : ''}${meal.type || 'Snack'}: ${meal.name}</h4>
+              <p><strong>Recipe:</strong> ${meal.baseRecipe}</p>
+              <p><strong>Prep Time:</strong> ${meal.prepTime || 'N/A'}</p>
+          `;
+          
+          if (meal.individualModifications && Object.keys(meal.individualModifications).length > 0) {
+            html += `<div class="modifications"><strong>Individual Tweaks:</strong><br>`;
+            for (const [member, tweak] of Object.entries(meal.individualModifications)) {
+              html += `<em>${member}:</em> ${tweak}<br>`;
+            }
+            html += `</div>`;
+          }
+          
+          if (meal.warnings) {
+            html += `<p class="warning">⚠️ Safety Note: ${meal.warnings}</p>`;
+          }
+          
+          html += `</div>`;
+        });
+      } else {
+        html += `<p>No meals found in the response.</p>`;
+      }
+      
+      resultsDiv.innerHTML = html;
+      document.getElementById('resultsArea').classList.remove('hidden');
+    }
+
+    // Initialize Dashboard on load
+    renderDashboard();
+    document.getElementById('btnIndividual').classList.toggle('active', AppState.mode === 'individual');
+    document.getElementById('btnFamily').classList.toggle('active', AppState.mode === 'family');
+  </script>
+</body>
+</html>
