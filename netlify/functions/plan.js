@@ -25,3 +25,24 @@ exports.handler = async (event) => {
     return { statusCode: 500, body: JSON.stringify({ error: "server error" }) };
   }
 };
+exports.handler = async (event, context) => {
+  try {
+    // 1. Validate input
+    const { prompt } = JSON.parse(event.body);
+    
+    // 2. Perform the logic (e.g., calling an LLM)
+    // const result = await callYourAI(prompt);
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: "Your result here" }),
+    };
+  } catch (error) {
+    console.error(error); // This shows up in Netlify logs
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: "Failed to generate plan" }),
+    };
+  }
+};
